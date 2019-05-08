@@ -19,6 +19,7 @@ class CertsManager
     Nginx.start
 
     ensure_signed(NAConfig.domains)
+    config_additional_ssl_configs
 
     Nginx.stop
     sleep 1 # Give Nginx some time to shutdown
@@ -69,6 +70,24 @@ class CertsManager
         end
       end
     end
+  end
+
+  def config_additional_ssl_configs
+    puts "Adding additional SSL dependend configuration"
+
+    Dir.glob('/var/lib/nginx-conf/*.extraconf.erb') do |extraconf|
+
+      compiled_config = ERBBinding.new(extraconf).compile
+
+      confname = File.basename(extraconf, ".erb")
+      puts "Adding #{confname}"
+
+      File.open("/etc/nginx/conf.d/#{confname}", 'w') do |f|
+        f.write compiled_config
+      end
+    end
+
+    Nginx.reload
   end
 
   def with_lock(&block)
